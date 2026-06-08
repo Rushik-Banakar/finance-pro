@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-outfit: 'Outfit', sans-serif;
+    --font-inter: 'Inter', sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-inter);
+    background-color: #020617; /* Slate 950 */
+    color: #f8fafc; /* Slate 50 */
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Premium Neomorphic & Glassmorphic Utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-gold {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(245, 158, 11, 0.15); /* amber-500/15 */
+  box-shadow: 0 12px 40px 0 rgba(245, 158, 11, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-input {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(245, 158, 11, 0.4); /* amber-500/40 */
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+}
+
+/* Finance Pro ambient glowing effects */
+.gold-glow {
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.35));
+}
+
+.emerald-glow {
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.35));
+}
+
+/* Customized Neomorphic Button */
+.btn-gold {
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  color: #0f172a;
+  font-weight: 600;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-gold:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 25px rgba(245, 158, 11, 0.35);
+  filter: brightness(1.1);
+}
+
+.btn-gold:active {
+  transform: translateY(0.5px);
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+/* Dynamic keypad neomorphic grids for PIN lock */
+.pin-btn {
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s;
+}
+
+.pin-btn:hover {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+  transform: scale(1.05);
+}
+
+.pin-btn:active {
+  transform: scale(0.95);
+}
+
+/* Shake animation on incorrect PIN entries */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Enforce hand/finger pointer cursor globally on all interactive & clickable elements */
+button,
+a,
+select,
+option,
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+[role="button"],
+.cursor-pointer,
+.btn-gold,
+.pin-btn {
+  cursor: pointer !important;
+}
+
+/* Hide native webkit calendar picker indicators */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
