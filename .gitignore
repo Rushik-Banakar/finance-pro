@@ -19,3 +19,7 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Test / scratch files
+scratch_*.py
+test_*.py
