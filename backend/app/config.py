@@ -13,10 +13,66 @@ _DEV_ORIGINS: List[str] = [
     "http://localhost:3000",
 ]
 
+# Placeholder value used in .env.example — treated as "not set"
+_SECRET_KEY_PLACEHOLDER = "CHANGE_ME_generate_with_secrets_token_hex_32"
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Finance Pro API"
     DATABASE_URL: str = "sqlite:///./money_manager.db"
-    SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+
+    # -------------------------------------------------------------------------
+    # SECRET_KEY  (Required — no default)
+    # -------------------------------------------------------------------------
+    # Used to sign and verify all JWT access tokens.
+    # Must be set via the SECRET_KEY environment variable (or in .env for local dev).
+    # The app will refuse to start if this is missing, blank, or set to the
+    # placeholder value from .env.example.
+    #
+    # Generate a secure value with:
+    #   python -c "import secrets; print(secrets.token_hex(32))"
+    # -------------------------------------------------------------------------
+    SECRET_KEY: str  # no default — intentionally required
+
+    @field_validator("SECRET_KEY", mode="before")
+    @classmethod
+    def validate_secret_key(cls, value: Any) -> str:
+        """
+        Reject the app at startup if SECRET_KEY is:
+          - missing / not set (Pydantic raises before this validator for truly absent fields)
+          - an empty string or whitespace-only string
+          - the literal placeholder from .env.example
+          - shorter than 32 characters (too weak for HS256)
+        """
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(
+                "\n\n"
+                "  SECRET_KEY is not set.\n"
+                "  Add it to your .env file (local dev) or Render environment variables (production).\n"
+                "  Generate a secure value with:\n"
+                "    python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            )
+
+        stripped = value.strip()
+
+        if stripped == _SECRET_KEY_PLACEHOLDER:
+            raise ValueError(
+                "\n\n"
+                "  SECRET_KEY is still set to the placeholder value from .env.example.\n"
+                "  Replace it with a real secret before starting the server.\n"
+                "  Generate a secure value with:\n"
+                "    python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            )
+
+        if len(stripped) < 32:
+            raise ValueError(
+                "\n\n"
+                f"  SECRET_KEY is too short ({len(stripped)} chars). Minimum is 32 characters.\n"
+                "  Generate a secure value with:\n"
+                "    python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            )
+
+        return stripped
+
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
@@ -74,3 +130,4 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 settings = Settings()
+

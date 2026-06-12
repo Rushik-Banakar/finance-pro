@@ -69,6 +69,7 @@ def startup_event():
     print(f"Gemini key detected: {'TRUE' if os.environ.get('GEMINI_API_KEY') else 'FALSE'}", flush=True)
     print(f"Anthropic key detected: {'TRUE' if os.environ.get('ANTHROPIC_API_KEY') else 'FALSE'}", flush=True)
     print(f"CORS_ORIGINS: {settings.CORS_ORIGINS}", flush=True)
+    print(f"SECRET_KEY: SET (starts with '{settings.SECRET_KEY[:8]}...')", flush=True)
 
 
 @app.get("/api/debug/llm-status")
