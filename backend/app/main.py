@@ -68,6 +68,8 @@ def startup_event():
     print(f"OpenAI key detected: {'TRUE' if os.environ.get('OPENAI_API_KEY') else 'FALSE'}", flush=True)
     print(f"Gemini key detected: {'TRUE' if os.environ.get('GEMINI_API_KEY') else 'FALSE'}", flush=True)
     print(f"Anthropic key detected: {'TRUE' if os.environ.get('ANTHROPIC_API_KEY') else 'FALSE'}", flush=True)
+    print(f"CORS_ORIGINS: {settings.CORS_ORIGINS}", flush=True)
+
 
 @app.get("/api/debug/llm-status")
 def get_llm_status():
