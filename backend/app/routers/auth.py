@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from ..database import get_db
 from ..models.auth import User, Settings
@@ -133,6 +133,7 @@ def signup(user_in: UserCreate, db: Session = Depends(get_db)):
             name=cat["name"],
             type=cat["type"],
             planned_outlay=cat.get("planned_outlay", 0.0),
+            icon=cat["icon"],
             is_custom=True
         )
         db.add(cat_obj)
@@ -173,14 +174,19 @@ def login(login_data: dict, db: Session = Depends(get_db)):
 
 
 @router.post("/login-oauth", response_model=Token)
-def login_oauth(form_data: dict, db: Session = Depends(get_db)):
-    # Fallback endpoint for standard Swagger OAuth2 logins
-    username = form_data.get("username")
-    password = form_data.get("password")
+def login_oauth(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    # Standard Swagger OAuth2 Password Flow — accepts application/x-www-form-urlencoded
+    username = form_data.username
+    password = form_data.password
     user = db.query(User).filter(User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect credentials")
-    token = create_access_token(data={"sub": user.username, "id": user.id, "email": user.email})
+    token = create_access_token(
+        data={"sub": user.username, "id": user.id, "email": user.email}
+    )
     return {
         "access_token": token,
         "token_type": "bearer",
