@@ -133,7 +133,6 @@ def signup(user_in: UserCreate, db: Session = Depends(get_db)):
             name=cat["name"],
             type=cat["type"],
             planned_outlay=cat.get("planned_outlay", 0.0),
-            icon=cat["icon"],
             is_custom=True
         )
         db.add(cat_obj)
