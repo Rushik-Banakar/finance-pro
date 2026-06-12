@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 
 from ..database import get_db
 from ..models.auth import User, Settings
@@ -133,7 +133,6 @@ def signup(user_in: UserCreate, db: Session = Depends(get_db)):
             name=cat["name"],
             type=cat["type"],
             planned_outlay=cat.get("planned_outlay", 0.0),
-            icon=cat["icon"],
             is_custom=True
         )
         db.add(cat_obj)
@@ -184,9 +183,7 @@ def login_oauth(
     user = db.query(User).filter(User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect credentials")
-    token = create_access_token(
-        data={"sub": user.username, "id": user.id, "email": user.email}
-    )
+    token = create_access_token(data={"sub": user.username, "id": user.id, "email": user.email})
     return {
         "access_token": token,
         "token_type": "bearer",
