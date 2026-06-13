@@ -1,0 +1,1172 @@
+==================================================
+1. PROJECT OVERVIEW
+==================================================
+- Project Name: Finance Pro (Money Manager)
+- Problem Statement: Modern personal finance tracking is often tedious, lacks proactive risk warnings, and offers static dashboards that fail to guide strategic financial decision-making. Standard tools do not provide contextualized, data-anchored advice or predictive indicators regarding overspending and saving milestones.
+- Business Objective: Create a secure, intelligent, and comprehensive personal ledger and wealth advisor that combines structured double-entry ledger tracking with data science indicators, machine-learning analytics, and generative AI personas. The application helps users track account balances, manage budgets, prevent overspending, identify saving opportunities, and receive real-time, data-grounded wealth coaching.
+- Target Users: Tech-savvy professionals, freelancers, retail investors, and business owners looking for a modern ledger platform with secure locks, automated budget calculations, and built-in financial intelligence.
+- Key Features:
+  * Multi-Account Ledger: Track liquid and credit balances across Savings, Current, CreditCard, Cash, and Wallet accounts.
+  * Transaction Lifecycle: Log incomes, expenses, and account transfers with automatic balance reconciliation.
+  * Smart Budget Control: Define outlay thresholds for expense categories with real-time risk evaluation (Critical, Warning, Healthy).
+  * Category Splits: Split existing categories into two distinct groupings with automatic transaction migration options (move all, move manual).
+  * Machine-Learning Analytics: Expense forecasting (LinearRegression), spending outlier flags (IsolationForest), and daily spending behavioral grouping (KMeans Clustering).
+  * AI Coach Panel: A conversational financial advisor offering multiple specialized personas (CFO, Health Diagnostics, Savings Optimizer, Budget Control, Affordability Evaluation, Master Advisor).
+  * PIN Lock Security: Security PIN authorization for private dashboards, custom lock durations, session timeouts, and hidden balance masking.
+- System Architecture Overview:
+  * Frontend: Single Page Application (SPA) built using React (v19), TypeScript, and Vite. State management uses Zustand. Server state sync and caching are managed via TanStack React Query. UI components are built using Tailwind CSS, Framer Motion for animations, and Recharts for interactive visualization.
+  * Backend: FastAPI (Python ASGI framework) implementing RESTful API routers. Session tracking is managed using JWT Bearer tokens. Relational storage is driven by SQLite via SQLAlchemy ORM.
+  * ML & AI pipeline: Scikit-Learn handles statistical predictions. A failover service coordinates connections to Groq, OpenAI, Google Gemini, and Anthropic APIs, defaulting to local rule-based templates if offline.
+- High-Level Workflow:
+  1. A user authenticates and gains access to their ledger. If enabled, the application triggers a PinLock screen.
+  2. The user inputs financial events. The backend adjusts the respective account balances atomically.
+  3. The Analytics component requests data science KPIs and ML outputs. The backend aggregates transactions using Pandas, fits ML models, and reports forecasts, anomalies, and KMeans groups.
+  4. The user interacts with the AI Advisor. The router builds a JSON payload summarizing current balances, budgets, trends, and scores.
+  5. The LLM Service reviews the context, selects the appropriate prompt agent, calls the best available LLM provider, sanitizes the response to strip markdown formatting in favor of raw HTML, and renders the advice in the Coach panel.
+
+==================================================
+2. TECHNOLOGIES USED
+==================================================
+* React (v19.2.6)
+  - What it is: A declarative UI library for building component-based SPA web interfaces.
+  - Why used: Enables a modular, component-driven architecture with fast virtual DOM reconciliation, crucial for real-time dashboard updates.
+  - Where used: Entire frontend interface (`frontend/src/App.tsx`, `frontend/src/pages/*`, `frontend/src/components/*`).
+  - Interview Explanation: "React 19 was selected to drive a high-fidelity web client. By utilizing a virtual DOM, React allows the application to render real-time dashboard card updates, financial charts, and conversational panels without full-page reloads."
+
+* TypeScript (~v6.0.2)
+  - What it is: A typed superset of JavaScript that compiles to plain JavaScript.
+  - Why used: Provides compile-time type verification, preventing runtime errors in complex financial data flows.
+  - Where used: All frontend code files.
+  - Interview Explanation: "TypeScript was implemented across the frontend to enforce type safety on API schemas, State models, and React Component props. This guarantees that parameters like transaction quantities, categories, and account balances adhere strictly to predefined data structures before reaching the UI."
+
+* Vite (v8.0.12)
+  - What it is: A modern frontend build tool and dev server.
+  - Why used: Offers instant server start-up and fast Hot Module Replacement (HMR) to accelerate development iterations.
+  - Where used: Frontend builder tool config (`frontend/vite.config.ts`, `frontend/package.json`).
+  - Interview Explanation: "Vite replaced legacy bundlers to significantly reduce build times. Its Hot Module Replacement allows for real-time styling updates and quick state reflections, optimizing front-end iteration efficiency."
+
+* TanStack React Query (v5.100.14)
+  - What it is: An asynchronous state management library for React.
+  - Why used: Manages remote server-state caching, loading states, and automatic cache invalidation during ledger mutations.
+  - Where used: Data fetching hooks in frontend pages (`frontend/src/pages/Analytics.tsx`, `frontend/src/components/CoachWidget.tsx`).
+  - Interview Explanation: "React Query is used to manage remote server state. It decouples local UI state from database records, automatically caching dashboard queries and executing invalidations on mutations so that charts refresh instantly when a transaction is logged."
+
+* Zustand (v5.0.13)
+  - What it is: A small, fast, and scalable state-management library.
+  - Why used: Provides lightweight, boilerplate-free global state for user sessions and client-side UI configurations.
+  - Where used: Global stores (`frontend/src/store/useAuthStore.ts`, `frontend/src/store/useUiStore.ts`).
+  - Interview Explanation: "Zustand was chosen for client-side state management, specifically for the user session and visual settings. Its lack of context boilerplate makes it extremely lightweight compared to Redux, allowing direct, hook-based access to state properties like `isLocked` or `hideBalance` across nested components."
+
+* Tailwind CSS (v4.3.0)
+  - What it is: A utility-first CSS framework.
+  - Why used: Accelerates rapid responsive design with flexible classes, custom theme tokens, and modern color palettes.
+  - Where used: All HTML/TSX elements.
+  - Interview Explanation: "Tailwind CSS v4 is used to construct a modern, premium dark-themed interface. Its utility classes enable responsive layouts, micro-animations, and glassmorphism elements, maintaining visual consistency across mobile and desktop screens."
+
+* Framer Motion (v12.40.0)
+  - What it is: An animation library for React.
+  - Why used: Drives high-performance, smooth transitions and gestures for the slide-in coach widgets and popup modals.
+  - Where used: Page transitions and UI overlays.
+  - Interview Explanation: "Framer Motion is integrated to implement smooth UI micro-animations. It controls the slide-in and fade effects of the AI Coach widget and PIN lock screens, improving user engagement through responsive visual feedback."
+
+* Recharts (v3.8.1)
+  - What it is: A composable charting library built on React components.
+  - Why used: Renders interactive, responsive SVG charts.
+  - Where used: Category outlay and distribution diagrams (`frontend/src/pages/Analytics.tsx`).
+  - Interview Explanation: "Recharts is used to build visual analytics dashboard charts. It consumes live aggregated transaction data, generating responsive pie charts and trend indicators that adapt dynamically when users modify time range selections."
+
+* Axios (v1.16.1)
+  - What it is: A promise-based HTTP client for the browser.
+  - Why used: Simplifies remote API requests, intercepting authorizations and mapping response payloads.
+  - Where used: Centralized API client (`frontend/src/services/api.ts`).
+  - Interview Explanation: "Axios serves as our central API driver. We configured custom request interceptors to automatically append JWT bearer tokens from local storage, handling authorization headers globally across all requests."
+
+* FastAPI (v1.0.0 ASGI)
+  - What it is: A modern, fast web framework for building APIs with Python.
+  - Why used: High-performance routing, automatic OpenAPI schema generation, and asynchronous (async/await) request processing.
+  - Where used: Backend entrypoint and routing files (`backend/app/main.py`, `backend/app/routers/*`).
+  - Interview Explanation: "FastAPI is the backbone of the backend service. It leverages Python type hints for fast request deserialization and inputs validation, while automatically exposing interactive OpenAPI docs at `/docs`."
+
+* SQLAlchemy (Core & ORM)
+  - What it is: A SQL database toolkit and Object-Relational Mapper for Python.
+  - Why used: Maps Python database model classes directly to SQLite tables, abstracting raw SQL queries.
+  - Where used: Database configuration (`backend/app/database.py`) and model definitions (`backend/app/models/*`).
+  - Interview Explanation: "SQLAlchemy is implemented as the Object-Relational Mapper. It establishes Python classes for core business objects like `Transaction` and `Account`, handling joins, constraints, and cascading deletes programmatically."
+
+* SQLite
+  - What it is: A self-contained, serverless SQL database engine.
+  - Why used: Fast, zero-configuration disk-based relational storage.
+  - Where used: Database instances (`backend/money_manager.db`).
+  - Interview Explanation: "SQLite was chosen as the relational storage layer. It provides transactional safety, foreign key constraints, and relational queries without the deployment overhead of a standalone server, ideal for desktop and edge environments."
+
+* Pandas & NumPy
+  - What it is: Data manipulation and numerical calculation libraries in Python.
+  - Why used: Perform lightning-fast matrix manipulations, group-by aggregates, and statistical KPI math on transaction histories.
+  - Where used: Analytical calculation services (`backend/app/services/ds_service.py`, `backend/app/services/coach_service.py`).
+  - Interview Explanation: "Pandas and NumPy are used in our analytical data service. They ingest list-based database results into structured DataFrames to calculate rolling averages, monthly profit & loss, and mathematical indicators like the Coefficient of Variation for income stability."
+
+* Scikit-Learn
+  - What it is: A machine learning library for Python.
+  - Why used: Trains predictive models on the user's ledger history to generate forecasts, anomaly flags, and spend clusters.
+  - Where used: Machine learning service (`backend/app/services/ds_service.py`).
+  - Interview Explanation: "Scikit-Learn drives the machine learning features. We use `LinearRegression` to project future expenses, `IsolationForest` to highlight out-of-pattern anomalies, and `KMeans` to group daily spending aggregates into behavioral clusters (Frugal, Moderate Utility, High-Volume Splurge)."
+
+* Groq, OpenAI, Google Gemini, Anthropic API Clients
+  - What it is: Third-party SDK integration endpoints for LLM models.
+  - Why used: Connect to powerful models (Llama 3.3, GPT-4o, Gemini 2.5, Claude 3.5) for reasoning over financial data.
+  - Where used: LLM service integration (`backend/app/services/llm_service.py`).
+  - Interview Explanation: "The application features a multi-model failover AI engine. We wrote custom request handlers that attempt connections to Groq, OpenAI, Gemini, and Anthropic in sequence, selecting the best model based on available API keys and automatically falling back if a service goes offline."
+
+* Jose & Passlib
+  - What it is: Cryptographic libraries for JWT signatures and password hashing.
+  - Why used: Secure user password verification via bcrypt and session tracking using signed tokens.
+  - Where used: Security utilities (`backend/app/services/auth_service.py`, `backend/app/routers/auth.py`).
+  - Interview Explanation: "Security is managed using Passlib and python-jose. Passwords are encrypted with bcrypt before database storage, and session authorization is managed using secure JWT tokens containing signed metadata payloads."
+
+==================================================
+3. SKILLS DEMONSTRATED
+==================================================
+* Frontend Skills:
+  - React Hooks Lifecycle: Utilizing `useState`, `useEffect`, and `useRef` to manage real-time UI inputs, animations, and scrolling containers.
+  - Client-Side Session Control: Interfacing Zustand state with `localStorage` to persist session structures, PIN configs, and UI settings.
+  - Server-State Synchronization: Implementing TanStack React Query queries and mutations to handle network requests, loading states, and automatic cache invalidation.
+  - Interactive Chart Styling: Configuring Recharts components with custom SVG cells, HTML tooltip overlays, and responsive wrappers.
+  - Micro-Interactions: Writing Tailwind transitions and Framer Motion components to build responsive panels.
+
+* Backend Skills:
+  - ASGI Web Design: Constructing FastAPI routes with strict type parameters, routing prefix handlers, and CORS middlewares.
+  - Input Deserialization: Writing strict Pydantic schemas to validate JSON payloads before routing them to controller functions.
+  - Dependency Injection: Using FastAPI `Depends` for modular database connections and JWT authentication checks.
+  - Thread-Safe Connections: Configuring SQLite connections with `check_same_thread=False` to manage asynchronous SQLAlchemy transactions.
+  - Exception Management: Writing global exception handlers to intercept runtime failures and return standardized JSON error messages.
+
+* Database Skills:
+  - Relational Database Schema Design: Designing structured tables with primary keys, foreign key constraints, and relational indices.
+  - Cascade Deletion Policies: Setting up `ondelete="CASCADE"` on settings/accounts and `ondelete="RESTRICT"` on categories to prevent dangling foreign references.
+  - ORM Relationship Mapping: Configuring SQLAlchemy `relationship()` mappings, including self-referential structures for source/destination transfer logs.
+  - Transactional Consistency: Implementing programmatic checks to update balances atomically across related tables during transaction deletions or category splits.
+
+* API Skills:
+  - JSON Web Token (JWT) Lifecycles: Issuing secure access tokens, validating signatures, checking token expiration, and configuring refresh endpoints.
+  - OpenAPI Spec Compliance: Generating interactive API documentation via FastAPI automatic schema rendering.
+  - Authorization Header Handlers: Parsing HTTP Bearer tokens from authorization headers for request access.
+
+* AI/LLM Skills:
+  - Multi-LLM Provider Failover: Building sequential API routing to query alternative remote models (Llama 3.3, GPT-4o, Gemini 2.5, Claude 3.5).
+  - Context Minimization: Writing trimming heuristics to remove verbose sub-arrays (e.g. slicing transaction arrays) to keep payload sizes under a 6,000-character token limit.
+  - Intent Routing: Classifying raw user query keywords to select custom financial agent prompts (e.g. CFO, Savings, Budget, Affordability).
+  - Prompt Engineering Guidelines: Enforcing output constraints like raw HTML-only structures, data citations, and minimal disclaimers.
+  - LLM Sanitization: Writing string parsing engines to remove markdown wrappers (e.g., ```html), deduct duplicate sentences, and strip emojis.
+
+* Data Analysis Skills:
+  - Pandas Aggregations: Using Pandas GroupBy operations to aggregate transactional outlays by category.
+  - Time-series Resampling: Sorting and grouping transactions based on monthly periods to calculate MoM changes.
+  - Income stability evaluation: Calculating the Coefficient of Variation (CV = standard deviation / mean) to measure income consistency.
+
+* DevOps Skills:
+  - Multi-stage Containerization: Writing Dockerfiles to package both the React static assets and Python FastAPI endpoints.
+  - Environment Injection: Configuring `.env` parsing to load API keys and database credentials securely.
+
+* Version Control Skills:
+  - Branching Strategy: Organizing workspace files, tracking changes, and using standard `.gitignore` rules to exclude local database files.
+
+* Software Engineering Skills:
+  - Clean Architecture Separation: Organizing code into distinct, decoupled folders for Models, Routers, Schemas, and Services.
+  - Programmatic Business Logic: Translating mathematical standards (e.g. 50/30/20 budget allocations) into functional code logic.
+
+==================================================
+4. COMPLETE FEATURE BREAKDOWN
+==================================================
+* Feature: User Session Authentication
+  - Purpose: Secure user access to private ledger details.
+  - Frontend Components: `Login.tsx` (Handles registration and login forms), `PinLock.tsx` (Global security PIN block cover).
+  - Backend Endpoints:
+    * `POST /api/auth/signup` (Creates new user, default categories, and default settings profile)
+    * `POST /api/auth/login` (Standard login verifying credentials and returning a JWT token)
+    * `GET /api/auth/me` (Returns authenticated user details)
+    * `POST /api/auth/verify-pin` (Verifies the security PIN lock)
+    * `POST /api/auth/update-pin` (Saves or disables security PIN lock hash)
+  - Database Tables: `users`, `settings`, `categories` (seeded defaults).
+  - Business Logic: Uses bcrypt to generate password and PIN hashes. Generates signed JWT access tokens containing username and user ID.
+  - Interview Explanation: "Session authorization is managed using signed JWT Bearer tokens. When a user logs in, the backend verifies their password hash and returns a token that the frontend stores in local storage and includes in subsequent headers. A global PinLock wrapper intercepts access if the user's settings profile has PIN lock enabled."
+
+* Feature: Multi-Account Balance Ledger
+  - Purpose: Manage balances across multiple bank accounts, wallets, and credit cards.
+  - Frontend Components: `Accounts.tsx` (Displays accounts list, card types, and transaction histories).
+  - Backend Endpoints:
+    * `GET /api/accounts` (Retrieves active, non-archived user accounts)
+    * `POST /api/accounts` (Registers new account ledger)
+    * `PUT /api/accounts/{id}` (Updates account parameters)
+    * `DELETE /api/accounts/{id}` (Soft-deletes/archives an account)
+  - Database Tables: `accounts`.
+  - Business Logic: Accounts are soft-deleted/archived (`is_archived = True`) rather than hard-deleted to preserve historical transaction contexts.
+  - Interview Explanation: "The account ledger tracks different account types (Savings, Wallet, CreditCard, Cash). To maintain transactional integrity, deleting an account soft-deletes it by setting `is_archived = True`. This ensures that previous transaction records and KPI charts remain accurate."
+
+* Feature: Transaction Ledger & Balance Reconciliation
+  - Purpose: Log incomes, expenses, and internal account transfers with atomic balance updates.
+  - Frontend Components: `Transactions.tsx` (Ledger list with filters, addition forms, and transfer forms).
+  - Backend Endpoints:
+    * `GET /api/transactions` (Retrieves filtered transactions list)
+    * `POST /api/transactions` (Logs a transaction and updates account balance)
+    * `PUT /api/transactions/{id}` (Modifies transaction details and recalculates account balances)
+    * `DELETE /api/transactions/{id}` (Deletes transaction and reverses its balance impact)
+    * `POST /api/transactions/bulk-delete` (Deletes multiple transactions and reconciles balances)
+    * `POST /api/transactions/transfers` (Logs a transfer between accounts)
+  - Database Tables: `transactions`, `transfers`, `accounts`.
+  - Business Logic: When an expense transaction is logged, the respective account balance is debited. On updates or deletions, the backend reverses the old transaction impact before applying the new amount. Transfers debit the source account and credit the destination account atomically.
+  - Interview Explanation: "Ledger consistency is maintained through programmatic database updates. When a transaction is logged, updated, or deleted, the backend performs calculations to update the respective account balances. On updates, it reverses the previous transaction's impact before applying the new values, preventing balance drift."
+
+* Feature: Budget Category Outlays & Splits
+  - Purpose: Manage budgets and allow restructuring categories.
+  - Frontend Components: `Categories.tsx` (Displays category limits, current spending, and split interfaces).
+  - Backend Endpoints:
+    * `GET /api/categories` (Retrieves default and user-specific categories)
+    * `POST /api/categories` (Creates a custom category)
+    * `PUT /api/categories/{id}` (Updates category name and planned outlay)
+    * `POST /api/categories/{id}/split` (Splits a category and migrates transactions)
+    * `DELETE /api/categories/{id}` (Deletes a category and re-associates or deletes its transactions)
+  - Database Tables: `categories`, `transactions`.
+  - Business Logic: Splitting a category creates a new custom category and updates related transactions' foreign keys based on the user's preference (e.g., manual mapping or bulk migration). Deleting a category requires migrating referencing transactions to a destination category or deleting them.
+  - Interview Explanation: "The budget category system supports dynamic restructuring. A category split updates the parent category's name and planned outlay, creates a new sub-category, and migrates related transaction references. This ensures database references remain valid during category reorganization."
+
+* Feature: Data Science & ML Engine
+  - Purpose: Calculate statistical KPIs and run predictive models.
+  - Frontend Components: `Analytics.tsx` (Displays KPI cards, pie charts, forecasts, outlier tables, and cluster cards).
+  - Backend Endpoints:
+    * `GET /api/analytics/kpis` (Returns basic metrics like mean spend, median spend, income stability, and savings rates)
+    * `GET /api/analytics/ml` (Returns expense forecasts, outlier anomalies, and behavioral clusters)
+  - Database Tables: `transactions`, `accounts`.
+  - Business Logic: Uses Scikit-Learn to run predictions. Projects next month's bills using `LinearRegression`, identifies outlier transactions using `IsolationForest` and Z-scores, and clusters daily spending aggregates using `KMeans`.
+  - Interview Explanation: "The analytics engine integrates data science models directly with the transactional database. It runs a Linear Regression model on aggregated monthly expenses to forecast future spend, uses Isolation Forest and Z-scores to flag anomaly outliers, and groups daily aggregates using KMeans clustering into behavioral categories."
+
+* Feature: AI Advisor Coach
+  - Purpose: Provide interactive, data-grounded personal finance guidance.
+  - Frontend Components: `CoachWidget.tsx` (Conversational window with tabs for Chat, Diagnostics, Planner, and Monthly Reviews).
+  - Backend Endpoints:
+    * `GET /api/coach/insights` (Generates review grades, savings suggestions, and warning checklists)
+    * `POST /api/coach/chat` (Processes chat messages and returns AI advisor answers)
+  - Database Tables: `transactions`, `accounts`, `categories`, `settings`.
+  - Business Logic: The backend builds a structured JSON context summarizing the user's financial details. The request classifies query intent to select the appropriate agent prompt (e.g., CFO, Budget, Health) and queries the LLM provider, falling back to a deterministic template if offline.
+  - Interview Explanation: "The AI Coach runs a multi-agent system grounded in real-time user database context. When a user sends a query, the backend classifies its intent to route it to a specialized agent persona. The LLM receives a prompt containing the user's actual financial data, ensuring responses contain accurate numbers."
+
+==================================================
+5. DATABASE DESIGN
+==================================================
+* Table: users
+  - Table Name: `users`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `username` (String): Unique, indexed, not null
+    * `email` (String): Unique, indexed, not null
+    * `hashed_password` (String): Not null
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: None
+  - Relationships:
+    * `accounts` (One-to-Many with `Account` via `user_id`, cascading delete)
+    * `categories` (One-to-Many with `Category` via `user_id`, cascading delete)
+    * `transactions` (One-to-Many with `Transaction` via `user_id`, cascading delete)
+    * `transfers` (One-to-Many with `Transfer` via `user_id`, cascading delete)
+    * `notifications` (One-to-Many with `Notification` via `user_id`, cascading delete)
+    * `settings` (One-to-One with `Settings` via `user_id`, cascading delete)
+    * `tickets` (One-to-Many with `SupportTicket` via `user_id`, cascading delete)
+    * `snapshots` (One-to-Many with `AnalyticsSnapshot` via `user_id`, cascading delete)
+  - Why it exists: Core user registration records and password hashes.
+
+* Table: settings
+  - Table Name: `settings`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Unique, Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `pin_hash` (String): Nullable (stores hashed 4-digit PIN)
+    * `is_pin_enabled` (Boolean): Default False
+    * `auto_lock_duration` (Integer): Default 300 seconds
+    * `session_timeout` (Integer): Default 3600 seconds
+    * `currency` (String): Default "INR"
+    * `language` (String): Default "English"
+    * `date_format` (String): Default "DD-MM-YYYY"
+    * `notification_pref` (String): Default "Email"
+    * `theme` (String): Default "FinancePro"
+    * `theme_customization` (String): Default "{}" (JSON string)
+    * `hide_balance` (Boolean): Default False
+    * `lock_analytics` (Boolean): Default False
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: `user_id` references `users.id`
+  - Relationships: `user` (Many-to-One back to `User`)
+  - Why it exists: Custom user configurations, visual preferences, and PIN hashes.
+
+* Table: accounts
+  - Table Name: `accounts`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `name` (String): Indexed, not null (e.g. "Main Savings")
+    * `bank_name` (String): Not null (e.g. "HDFC")
+    * `type` (String): Not null ("Savings", "Current", "CreditCard", "Cash", "Wallet")
+    * `balance` (Float): Default 0.0
+    * `currency` (String): Default "INR"
+    * `is_archived` (Boolean): Default False
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: `user_id` references `users.id`
+  - Relationships:
+    * `user` (Many-to-One back to `User`)
+    * `transactions` (One-to-Many with `Transaction` via `account_id`, cascading delete)
+    * `transfers_sent` (One-to-Many with `Transfer` via `source_account_id`, cascading delete)
+    * `transfers_received` (One-to-Many with `Transfer` via `destination_account_id`, cascading delete)
+  - Why it exists: Tracks account types, bank details, and active balances.
+
+* Table: categories
+  - Table Name: `categories`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), nullable (NULL indicates system defaults)
+    * `name` (String): Not null
+    * `type` (String): Not null ("Expense", "Income")
+    * `planned_outlay` (Float): Default 0.0 (planned monthly budget limit)
+    * `is_custom` (Boolean): Default False
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: `user_id` references `users.id` (nullable)
+  - Relationships:
+    * `user` (Many-to-One back to `User`)
+    * `transactions` (One-to-Many with `Transaction` via `category_id`)
+  - Why it exists: Classifies user cash flow and defines monthly budget limits.
+
+* Table: transactions
+  - Table Name: `transactions`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `account_id` (Integer): Foreign Key to `accounts.id` (ondelete="CASCADE"), not null
+    * `category_id` (Integer): Foreign Key to `categories.id` (ondelete="RESTRICT"), not null
+    * `type` (String): Not null ("Expense", "Income")
+    * `amount` (Float): Not null
+    * `description` (String): Nullable
+    * `date` (DateTime): Not null, default UTC now
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys:
+    * `user_id` references `users.id`
+    * `account_id` references `accounts.id`
+    * `category_id` references `categories.id`
+  - Relationships:
+    * `user` (Many-to-One back to `User`)
+    * `account` (Many-to-One back to `Account`)
+    * `category` (Many-to-One back to `Category`)
+  - Why it exists: Historical record of transaction outlays and receipts.
+
+* Table: transfers
+  - Table Name: `transfers`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `source_account_id` (Integer): Foreign Key to `accounts.id` (ondelete="CASCADE"), not null
+    * `destination_account_id` (Integer): Foreign Key to `accounts.id` (ondelete="CASCADE"), not null
+    * `amount` (Float): Not null
+    * `description` (String): Nullable
+    * `date` (DateTime): Not null, default UTC now
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys:
+    * `user_id` references `users.id`
+    * `source_account_id` references `accounts.id`
+    * `destination_account_id` references `accounts.id`
+  - Relationships:
+    * `user` (Many-to-One back to `User`)
+    * `source_account` (Many-to-One with `Account` mapping to source account)
+    * `destination_account` (Many-to-One with `Account` mapping to target account)
+  - Why it exists: Tracks fund transfers between a user's accounts.
+
+* Table: support_tickets
+  - Table Name: `support_tickets`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `subject` (String): Not null
+    * `description` (String): Not null
+    * `type` (String): Default "Ticket" ("FAQ", "Ticket", "Bug", "FeatureRequest", "Feedback")
+    * `status` (String): Default "Open" ("Open", "InProgress", "Closed")
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: `user_id` references `users.id`
+  - Relationships: `user` (Many-to-One back to `User`)
+  - Why it exists: Tracks support requests.
+
+* Table: notifications
+  - Table Name: `notifications`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `type` (String): Not null ("ExpenseAdded", "BudgetWarning", "MonthlySummary", "AnomalyAlert")
+    * `message` (String): Not null
+    * `is_read` (Boolean): Default False
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: `user_id` references `users.id`
+  - Relationships: `user` (Many-to-One back to `User`)
+  - Why it exists: Stores push notifications and budget warnings.
+
+* Table: analytics_snapshots
+  - Table Name: `analytics_snapshots`
+  - Columns:
+    * `id` (Integer): Primary Key (Auto-Increment, indexed)
+    * `user_id` (Integer): Foreign Key to `users.id` (ondelete="CASCADE"), not null
+    * `date` (DateTime): Not null, default UTC now
+    * `total_balance` (Float): Not null
+    * `savings_rate` (Float): Not null
+    * `health_score` (Integer): Not null
+    * `insights` (String): Default "[]" (JSON list of insights strings)
+    * `created_at` (DateTime): Default UTC now
+  - Primary Key: `id`
+  - Foreign Keys: `user_id` references `users.id`
+  - Relationships: `user` (Many-to-One back to `User`)
+  - Why it exists: Historical log of financial health snapshots for trend calculations.
+
+--------------------------------------------------
+Entity-Relationship Text Map:
+--------------------------------------------------
+   +------------------+             +-----------------------+
+   |      users       | < - - - - > |       settings        |
+   +------------------+ (1:1)       +-----------------------+
+     | (1)
+     |
+     +-- (Many) -- > [ accounts ] (One-to-Many, CASCADE delete)
+     |               - Has many transactions
+     |               - Has many transfers (source / destination)
+     |
+     +-- (Many) -- > [ categories ] (One-to-Many, CASCADE delete if custom)
+     |               - FK user_id is Nullable (allows system default categories)
+     |               - Linked to transactions
+     |
+     +-- (Many) -- > [ transactions ] (One-to-Many, CASCADE delete)
+     |               - FK account_id references accounts (CASCADE delete)
+     |               - FK category_id references categories (RESTRICT delete)
+     |
+     +-- (Many) -- > [ transfers ] (One-to-Many, CASCADE delete)
+     |               - FK source_account_id references accounts (CASCADE delete)
+     |               - FK destination_account_id references accounts (CASCADE delete)
+     |
+     +-- (Many) -- > [ support_tickets ]
+     |
+     +-- (Many) -- > [ notifications ]
+     |
+     +-- (Many) -- > [ analytics_snapshots ]
+
+==================================================
+6. API DOCUMENTATION
+==================================================
+* Route: POST /api/auth/signup
+  - Method: POST
+  - Purpose: Registers a user, initializes default categories, and creates settings.
+  - Request Body: JSON with `username` (string), `email` (string), and `password` (string).
+  - Response: JSON object representing the newly created user (id, username, email, created_at).
+  - Interview Explanation: "This endpoint handles new user registration. It hashes the password, inserts the user record, and seeds default budget categories and settings profiles."
+
+* Route: POST /api/auth/login
+  - Method: POST
+  - Purpose: Validates password hash and issues a JWT token.
+  - Request Body: JSON with `username` (string/email) and `password` (string).
+  - Response: JSON with `access_token` (string), `token_type` ("bearer"), `username` (string), and `email` (string).
+  - Interview Explanation: "Handles JSON authentication requests. It checks the password hash, signs a JWT token with the user's metadata, and sends it back to the client."
+
+* Route: GET /api/auth/me
+  - Method: GET
+  - Purpose: Fetches currently authenticated user details.
+  - Request Body: None (Requires Authorization header: `Bearer <token>`).
+  - Response: JSON with user details (id, username, email, created_at).
+  - Interview Explanation: "A protected endpoint that parses the JWT token to identify the current session user."
+
+* Route: POST /api/auth/verify-pin
+  - Method: POST
+  - Purpose: Verifies the security PIN lock code.
+  - Request Body: JSON with `pin` (string).
+  - Response: JSON indicating success: `{"status": "success", "message": "PIN verified successfully"}`.
+  - Interview Explanation: "Verifies the user's PIN against the settings hash to unlock the dashboard."
+
+* Route: POST /api/auth/update-pin
+  - Method: POST
+  - Purpose: Saves or updates PIN lock configurations.
+  - Request Body: JSON with `pin` (string, nullable) and `is_pin_enabled` (boolean).
+  - Response: JSON success statement.
+  - Interview Explanation: "Updates PIN configuration. Disabling the PIN clears the pin hash in the settings database."
+
+* Route: GET /api/accounts
+  - Method: GET
+  - Purpose: Lists active, non-archived user accounts.
+  - Request Body: Query parameter `include_archived` (boolean, default False).
+  - Response: JSON array of user accounts.
+  - Interview Explanation: "Lists active bank accounts and cards. Setting `include_archived=True` retrieves soft-deleted accounts."
+
+* Route: POST /api/accounts
+  - Method: POST
+  - Purpose: Registers a new bank account.
+  - Request Body: JSON with `name` (string), `bank_name` (string), `type` (string), `balance` (float), and `currency` (string).
+  - Response: JSON of the created account record.
+  - Interview Explanation: "Creates a new account record. This value is used to calculate the user's total net worth."
+
+* Route: PUT /api/accounts/{id}
+  - Method: PUT
+  - Purpose: Updates mutable account properties.
+  - Request Body: JSON dict with fields to update (e.g. `name`, `type`).
+  - Response: Updated account object.
+  - Interview Explanation: "Updates account properties. It protects immutable fields like `balance` and `id` from unauthorized modification."
+
+* Route: DELETE /api/accounts/{id}
+  - Method: DELETE
+  - Purpose: Archives an account.
+  - Request Body: None.
+  - Response: Success JSON.
+  - Interview Explanation: "Archives an account instead of hard deleting it to maintain database history."
+
+* Route: GET /api/transactions
+  - Method: GET
+  - Purpose: Retrieves a filtered list of transactions.
+  - Request Body: Query parameters for filtering (e.g. `account_ids`, `category_id`, `type`, `start_date`, `end_date`, `search`, `limit`).
+  - Response: JSON array of transaction responses.
+  - Interview Explanation: "Retrieves transactions with custom filters. Supports searching descriptions and category names using SQL LIKE queries."
+
+* Route: POST /api/transactions
+  - Method: POST
+  - Purpose: Logs a transaction and updates the associated account balance.
+  - Request Body: JSON with `account_id`, `category_id`, `type`, `amount`, `description`, and `date`.
+  - Response: Created transaction JSON.
+  - Interview Explanation: "Logs a transaction. It updates the associated account balance dynamically based on the transaction type."
+
+* Route: PUT /api/transactions/{id}
+  - Method: PUT
+  - Purpose: Updates transaction details and reconciles account balances.
+  - Request Body: JSON dictionary of fields to update.
+  - Response: Updated transaction response.
+  - Interview Explanation: "Updates a transaction. The backend reverses the old transaction's impact before applying the new values to prevent balance drifts."
+
+* Route: DELETE /api/transactions/{id}
+  - Method: DELETE
+  - Purpose: Deletes a transaction and reverses its impact on the account balance.
+  - Request Body: None.
+  - Response: Success JSON.
+  - Interview Explanation: "Deletes a transaction. It reconciles the associated account's balance before removing the transaction record."
+
+* Route: POST /api/transactions/bulk-delete
+  - Method: POST
+  - Purpose: Deletes multiple transactions and reconciles balances.
+  - Request Body: JSON with `ids` (list of integers) and `all` (boolean).
+  - Response: Success JSON.
+  - Interview Explanation: "Deletes multiple transactions at once. Reconciles all affected account balances before execution."
+
+* Route: POST /api/transactions/transfers
+  - Method: POST
+  - Purpose: Logs a transfer between two accounts.
+  - Request Body: JSON with `source_account_id`, `destination_account_id`, `amount`, `description`, and `date`.
+  - Response: Logged transfer record.
+  - Interview Explanation: "Logs a transfer. Debits the source account and credits the destination account atomically."
+
+* Route: GET /api/categories
+  - Method: GET
+  - Purpose: Lists system and user-specific categories.
+  - Request Body: None.
+  - Response: JSON array of category records.
+  - Interview Explanation: "Retrieves default system categories and user-created custom categories."
+
+* Route: POST /api/categories
+  - Method: POST
+  - Purpose: Creates a custom category.
+  - Request Body: JSON with `name`, `type`, and `planned_outlay`.
+  - Response: Created category JSON.
+  - Interview Explanation: "Creates a custom category. User-defined categories are flagged with `is_custom=True`."
+
+* Route: PUT /api/categories/{id}
+  - Method: PUT
+  - Purpose: Updates category parameters.
+  - Request Body: JSON dictionary.
+  - Response: Updated category response.
+  - Interview Explanation: "Updates category properties. System default categories restrict modification to budget outlays and names."
+
+* Route: POST /api/categories/{id}/split
+  - Method: POST
+  - Purpose: Splits a category and migrates related transactions.
+  - Request Body: JSON with `name_a`, `planned_outlay_a`, `name_b`, `planned_outlay_b`, `migration_option`, and `manual_moves`.
+  - Response: Migration results JSON.
+  - Interview Explanation: "Splits a category. It renames the parent category and creates a new sub-category, migrating related transactions according to user preferences."
+
+* Route: GET /api/categories/{id}/dependencies
+  - Method: GET
+  - Purpose: Counts referencing transactions and active budgets.
+  - Request Body: None.
+  - Response: JSON with dependency counts.
+  - Interview Explanation: "Calculates category dependencies. Used by the frontend to confirm transaction migration options before deletion."
+
+* Route: DELETE /api/categories/{id}
+  - Method: DELETE
+  - Purpose: Deletes a category and migrates transactions.
+  - Request Body: Optional query parameters: `delete_transactions` (boolean) and `new_category_id` (integer).
+  - Response: Success statement.
+  - Interview Explanation: "Deletes a category. Requires either migrating related transactions to another category or deleting them to prevent database constraint failures."
+
+* Route: GET /api/analytics/kpis
+  - Method: GET
+  - Purpose: Returns statistical KPIs.
+  - Request Body: None.
+  - Response: JSON with average spend, median spend, income stability, CV, and net worth.
+  - Interview Explanation: "Generates financial metrics using Pandas. Evaluates income stability using the Coefficient of Variation."
+
+* Route: GET /api/analytics/ml
+  - Method: GET
+  - Purpose: Returns forecasting, outlier, and clustering results.
+  - Request Body: None.
+  - Response: JSON with Linear Regression, Isolation Forest, and KMeans details.
+  - Interview Explanation: "Runs machine learning models on transaction histories to generate predictions, spending anomaly warnings, and behavioral clusters."
+
+* Route: GET /api/coach/insights
+  - Method: GET
+  - Purpose: Returns diagnostic reviews and savings suggestions.
+  - Request Body: None.
+  - Response: JSON with insights, savings recommendations, and warnings.
+  - Interview Explanation: "Calculates financial metrics (e.g. savings rates and overruns) to generate structured reviews."
+
+* Route: POST /api/coach/chat
+  - Method: POST
+  - Purpose: Processes conversational queries.
+  - Request Body: JSON with `message` (string) and `history` (list of message dicts).
+  - Response: JSON response containing the AI reply.
+  - Interview Explanation: "Retrieves user data, classifies query intent, routes to an appropriate agent prompt, and queries the LLM to generate responses."
+
+==================================================
+7. AI ASSISTANT ARCHITECTURE
+==================================================
+The AI assistant runs a multi-agent system grounded in real-time user database context.
+
+Detailed Request-Response Lifecycle:
+  1. Frontend Post: The frontend sends a user message and conversation history to `/api/coach/chat`.
+  2. Context Retrieval: The backend instantiates `CoachService(db, user.id)` to fetch the user's accounts, categories, and transactions.
+  3. Context Assembly: `FinancialContextBuilder` aggregates this data into a structured JSON payload containing monthly summaries, budget analysis, category trends, health sub-scores, and recent transactions.
+  4. Context Trimming: If the context size exceeds 6,000 characters, it is truncated to avoid context window overflows.
+  5. Intent Classification: The backend classifies the query's intent (e.g., CFO review, budget advice, affordability check) using keyword analysis.
+  6. Agent Selection: The classified intent is mapped to a specialized prompt agent:
+     - `cfo`: Monthly financial audits with tabular reports.
+     - `health`: Health score diagnostic diagnostics.
+     - `savings`: Discretionary savings optimization plans.
+     - `budget`: Outlay assessments and category reductions.
+     - `affordability`: Cost evaluations against net worth.
+     - `master`: General financial guidelines and scenarios.
+  7. Prompt Building: The system merges the base instructions with the selected agent prompt and context JSON.
+  8. Multi-Model Routing & Failover: The backend calls the best available LLM provider based on configured API keys:
+     - Groq API (`llama-3.3-70b-versatile`)
+     - OpenAI API (`gpt-4o`)
+     - Google Gemini API (`gemini-2.5-flash`)
+     - Anthropic API (`claude-3-5-sonnet-20241022`)
+     - Local Fallback: Renders a deterministic text template if all remote API calls fail.
+  9. Response Sanitization: The reply is sanitized to convert markdown titles to HTML tags, strip emojis, and remove duplicate sentences.
+  10. Rendering: The backend returns raw HTML (`{"reply": reply}`), which the frontend renders directly in the chat window.
+
+Step-by-Step AI Execution Flow Chart:
+   [User Inputs Query]
+          │
+          ▼
+   [FastAPI Route: /coach/chat]
+          │
+          ▼
+   [Retrieve DB Data (CoachService)]
+          │
+          ▼
+   [Assemble Context (FinancialContextBuilder)]
+          │
+          ▼
+   [Context Trimmer (< 6,000 Chars)]
+          │
+          ▼
+   [Intent Classifier (e.g., 'CFO Audit')] ──> [Select Agent Prompt (e.g., 'cfo')]
+          │
+          ▼
+   [Query LLM Chain (Groq ──> OpenAI ──> Gemini ──> Anthropic ──> Local Template)]
+          │
+          ▼
+   [Sanitize Output (Remove Markdown, Emojis, and Duplicates)]
+          │
+          ▼
+   [Return HTML Reply] ──> [React Renders HTML]
+
+==================================================
+8. END-TO-END APPLICATION FLOW
+==================================================
+* Flow A: User Login
+  - Step 1 (Frontend): User enters credentials on the `/login` screen. Axios calls `POST /api/auth/login`.
+  - Step 2 (Backend): FastAPI retrieves user records by username or email. It verifies the password using bcrypt.
+  - Step 3 (Backend): If verified, it generates a JWT containing user ID metadata and returns it to the client.
+  - Step 4 (Frontend): Zustand saves the token to local storage and updates `isAuthenticated = true`.
+  - Step 5 (Frontend): The app redirects to `/`. The API client automatically includes the token in subsequent headers.
+
+* Flow B: Account Creation
+  - Step 1 (Frontend): User enters account details (e.g. Savings, Bank: HDFC, Balance: 50,000) on the `/accounts` page and clicks Save.
+  - Step 2 (Frontend): Axios sends a `POST` request containing the parameters to `/api/accounts`.
+  - Step 3 (Backend): FastAPI verifies the user's JWT token, instantiates an `Account` model, and saves it to the SQLite database.
+  - Step 4 (Backend): The endpoint returns the created record.
+  - Step 5 (Frontend): React Query invalidates the `accounts` cache, triggering a refresh of the page and net worth metrics.
+
+* Flow C: Transaction Creation & Reconciliation
+  - Step 1 (Frontend): User opens the Transaction form, inputs details (Amount: 1,500, Type: Expense, Category: Food, Account: HDFC), and clicks Save.
+  - Step 2 (Frontend): Axios sends a `POST` request containing the parameters to `/api/transactions`.
+  - Step 3 (Backend): FastAPI verifies the token, checks that the account and category exist, and logs a new `Transaction` record.
+  - Step 4 (Backend): The backend adjusts the associated account balance based on the transaction type:
+    - Expense: `account.balance -= amount`
+    - Income: `account.balance += amount`
+  - Step 5 (Backend): FastAPI commits the database transaction and returns the transaction record.
+  - Step 6 (Frontend): React Query invalidates the `transactions` and `accounts` caches, refreshing ledger tables and KPI cards.
+
+* Flow D: Budget Tracking & Warnings
+  - Step 1 (Backend): When logging a transaction, the backend checks the category's planned monthly outlay.
+  - Step 2 (Backend): It aggregates the current month's expenses for that category. If spending exceeds the budget, it creates a database notification.
+  - Step 3 (Frontend): When the dashboard loads, React Query fetches active alerts via `GET /api/support/notifications`.
+  - Step 4 (Frontend): Alerts are displayed in the UI (e.g., "Warning: Food is at 95% of its monthly budget").
+
+* Flow E: Data Science & ML Predictions
+  - Step 1 (Frontend): User navigates to `/analytics`.
+  - Step 2 (Frontend): React Query sends requests to `/api/analytics/kpis` and `/api/analytics/ml`.
+  - Step 3 (Backend): FastAPI retrieves the user's transactions and accounts database records.
+  - Step 4 (Backend): In `ds_service.py`, data is parsed into a Pandas DataFrame:
+    - Standard KPIs (average spend, median spend, CV) are calculated.
+    - An Isolation Forest model identifies anomalous spending outliers.
+    - KMeans clusters daily aggregates into Frugal/Splurge groups.
+    - Linear Regression projects future expenses.
+  - Step 5 (Backend): Returns the statistical and model outputs to the client.
+  - Step 6 (Frontend): Renders the results in pie charts, trend lines, and KPI cards.
+
+* Flow F: AI Assistant conversational queries
+  - Step 1 (Frontend): User opens the Coach panel and enters a query (e.g. "Am I overspending?").
+  - Step 2 (Frontend): The UI displays a typing indicator and sends a `POST` request to `/api/coach/chat`.
+  - Step 3 (Backend): The router builds a JSON context of the user's finances and classifies the query's intent (e.g. `spending_risks` mapping to `health`).
+  - Step 4 (Backend): It queries the LLM provider, providing the financial context and chat history.
+  - Step 5 (Backend): The LLM returns HTML-formatted advice grounded in the user's actual database numbers.
+  - Step 6 (Backend): The response is sanitized and returned to the client.
+  - Step 7 (Frontend): The typing indicator is removed, and the raw HTML is rendered in the chat window.
+
+==================================================
+9. TOP 50 INTERVIEW QUESTIONS
+==================================================
+* Section A: React & TypeScript (Questions 1 - 15)
+
+1. Question: How does this project structure its global state?
+   Answer: Zustand handles client-side visual settings (such as themes, locked screens, and balance visibility) and user authentication data, while TanStack React Query handles server-state caching and synchronization.
+   Follow-up: Why not use Redux for everything?
+   Follow-up: How do you configure React Query to prevent unnecessary backend requests?
+
+2. Question: Why is TanStack React Query used instead of standard useEffect hooks?
+   Answer: React Query automates cache management, loading states, and retry logic. It simplifies synchronizing client-side UI states with server-side database records.
+   Follow-up: How do you trigger data refreshes when database records change?
+   Follow-up: What is your cache garbage collection strategy?
+
+3. Question: How does PinLock.tsx intercept unauthorized routes?
+   Answer: It reads the `isLocked` state from the Zustand store. If true, it overlays a PIN keypad screen to prevent access to underlying dashboard components.
+   Follow-up: How do you prevent users from bypassing this lock by modifying local storage?
+   Follow-up: What handles automatic locking when the application is idle?
+
+4. Question: How does the dashboard hide balance details globally?
+   Answer: The Zustand UI store exposes a boolean `hide_balance` property. When true, React components replace account balances and transaction amounts with masked text (e.g., "••••").
+   Follow-up: Does this hide balances from API network payloads?
+   Follow-up: How is this setting synchronized with the database?
+
+5. Question: What are the benefits of using TypeScript for financial interfaces?
+   Answer: TypeScript enforces static types for transactions and account objects, helping prevent runtime errors when processing financial calculations.
+   Follow-up: How do you map backend models to frontend types?
+   Follow-up: Can you explain the difference between TypeScript interfaces and type aliases?
+
+6. Question: How are interactive diagrams rendered in Analytics.tsx?
+   Answer: We use Recharts. Transaction data is formatted into arrays of objects (e.g., category and value keys) and rendered using SVG-based Pie and Cell components.
+   Follow-up: How does Recharts handle responsiveness on mobile screens?
+   Follow-up: How do you display tooltips with custom currency formatting?
+
+7. Question: What is the benefit of React 19's compiler in a dashboard?
+   Answer: It automates optimization by compiling components to minimize re-renders, reducing the need for manual memoization hook calls.
+   Follow-up: How does it impact hooks like `useMemo` and `useCallback`?
+   Follow-up: What are the main differences between React 18 and 19?
+
+8. Question: How does the frontend handle API routing?
+   Answer: We define routes using `react-router-dom` (v7), wrapping private pages with a `ProtectedRoute` component that checks authentication status.
+   Follow-up: How do you redirect users back to their target URL after a login?
+   Follow-up: Explain the differences between hash routers and browser history routers.
+
+9. Question: How do you handle loading and error states during API requests?
+   Answer: React Query exposes `isLoading` and `isError` flags, allowing components to display loading indicators or error messages during network operations.
+   Follow-up: How do you configure global error messages for API failures?
+   Follow-up: What is the default retry behavior in React Query?
+
+10. Question: Why use Framer Motion for dashboard animations?
+    Answer: It provides smooth, GPU-accelerated transitions that improve visual feedback, especially for sliding panels and modal popups.
+    Follow-up: What is the performance overhead of animation libraries?
+    Follow-up: How do you animate elements when they mount or unmount?
+
+11. Question: How does the application verify security PIN constraints in typescript?
+    Answer: Form inputs check character lengths and validate numeric regex formatting (e.g., `^[0-9]+$`) before sending validation requests to the backend.
+    Follow-up: How do you handle keyboard input focus on PIN pads?
+    Follow-up: What is the difference between string types and custom number formats?
+
+12. Question: Explain why tsconfig.app.json is structured separately in Vite.
+    Answer: It separates configurations for frontend application files from build tooling and node scripts, preventing compiler configuration conflicts.
+    Follow-up: What is the role of `tsconfig.node.json`?
+    Follow-up: What does `moduleResolution: "bundler"` mean?
+
+13. Question: How does the Axios client intercept network errors?
+    Answer: We configure interceptors to catch HTTP error codes. For example, a 401 response triggers an automatic user logout.
+    Follow-up: How do you queue requests during token refresh cycles?
+    Follow-up: What are Axios cancellation tokens used for?
+
+14. Question: How are dynamic themes managed in settings?
+    Answer: Themes are saved as strings in the user's settings profile. Tailwind utilizes this setting to apply custom CSS variables for layout styling.
+    Follow-up: How does tailwind configure custom dark-theme colors?
+    Follow-up: What is the performance impact of dynamic CSS variables?
+
+15. Question: Why are React components structured into separate Page and Component directories?
+    Answer: Separation of concerns. Page components handle data fetching and page layouts, while child components are designed to be reusable and presentational.
+    Follow-up: How do you share state between siblings without prop drilling?
+    Follow-up: What is a layout component?
+
+* Section B: FastAPI & Python (Questions 16 - 30)
+
+16. Question: Why was FastAPI chosen over Flask or Django?
+    Answer: High performance, built-in validation via Pydantic, async support, and automatic OpenAPI generation.
+    Follow-up: In what scenarios would you choose Django over FastAPI?
+    Follow-up: Explain how FastAPI handles async requests under the hood.
+
+17. Question: How does the backend validate incoming request bodies?
+    Answer: It uses Pydantic schemas. Incoming JSON payloads are parsed and validated against type definitions before being converted to ORM objects.
+    Follow-up: What happens when validation fails?
+    Follow-up: How do you define custom field validators in Pydantic?
+
+18. Question: How is the database connection managed in routers?
+    Answer: Using FastAPI's dependency injection (`Depends`). The `get_db` generator yields a SessionLocal instance and closes the session when the request completes.
+    Follow-up: Why is it important to close database sessions after requests?
+    Follow-up: What is the role of connection pooling?
+
+19. Question: Explain how JWT validation is implemented in the auth router.
+    Answer: The `get_current_user` dependency extracts the Bearer token, verifies its signature against the secret key using `jose.jwt`, and checks the database for the user.
+    Follow-up: What is the security risk of storing the secret key in the code?
+    Follow-up: How do you handle token expiration checks?
+
+20. Question: How does the backend calculate the Coefficient of Variation for income stability?
+    Answer: It groups income transactions by month, calculates the standard deviation and mean of the monthly totals, and divides the standard deviation by the mean.
+    Follow-up: What does a high CV value indicate about income stability?
+    Follow-up: How does the application handle single-month income records?
+
+21. Question: What is the role of Scikit-Learn in Analytics?
+    Answer: It calculates predictions on the user's transaction history, providing future spending forecasts, anomaly flags, and behavioral clusters.
+    Follow-up: How does the backend handle small transaction histories?
+    Follow-up: What is the performance impact of running model training on API requests?
+
+22. Question: Explain how the Isolation Forest model identifies anomalous transactions.
+    Answer: It isolates anomalies by randomly partitioning features. Outliers require fewer splits to isolate, resulting in shorter path lengths in trees.
+    Follow-up: Why use Isolation Forest instead of standard Z-scores?
+    Follow-up: How do you tune the contamination parameter?
+
+23. Question: How does the backend forecast upcoming monthly bills?
+    Answer: It aggregate expenses by month, converts dates to indexes, fits a Linear Regression model, and projects the next index's value.
+    Follow-up: What are the limitations of using Linear Regression for financial forecasting?
+    Follow-up: How could you incorporate seasonality into the forecast?
+
+24. Question: How are KMeans daily expense clusters classified in ds_service.py?
+    Answer: It groups daily expense totals, runs KMeans clustering, and maps the cluster centers to behavioral labels (Frugal, Moderate Utility, High-Volume Splurge).
+    Follow-up: How is the optimal number of clusters determined?
+    Follow-up: What happens when the dataset has high variance?
+
+25. Question: Why does the category split endpoint use `db.flush()` before commit?
+    Answer: To generate the database ID for the newly created category, which is needed to associate transactions before committing the changes.
+    Follow-up: What is the difference between `db.flush()` and `db.commit()`?
+    Follow-up: How do you handle rollbacks if a split fails?
+
+26. Question: How are password and PIN hashes generated?
+    Answer: Using Passlib's CryptContext with the bcrypt algorithm, which hashes passwords with random salts to prevent rainbow table attacks.
+    Follow-up: Why is hashing better than encrypting passwords?
+    Follow-up: How does bcrypt protect against brute-force attacks?
+
+27. Question: What is the role of `pydantic-settings`?
+    Answer: It manages environment variable configurations, loading variables into typed Settings instances with validation.
+    Follow-up: How does Pydantic settings parse environment variables?
+    Follow-up: What are the benefits of case-sensitive configurations?
+
+28. Question: How are CORS origins configured in main.py?
+    Answer: Via FastAPI's CORSMiddleware, which reads allowed domains from settings and configures headers (e.g., Allow-Methods, Allow-Headers).
+    Follow-up: What is the purpose of CORS?
+    Follow-up: What is the security risk of using wildcard origins (`*`)?
+
+29. Question: How does the global exception handler in main.py work?
+    Answer: It intercepts unhandled exceptions during requests, logs details, and returns a standardized 500 JSON response.
+    Follow-up: Why should you avoid exposing raw exception traces to clients?
+    Follow-up: How do you register custom exception handlers?
+
+30. Question: Why is context data converted to Pandas DataFrames in ds_service.py?
+    Answer: To simplify data manipulation, allowing calculations like rolling statistics, means, medians, and model fits.
+    Follow-up: What is the memory footprint of Pandas DataFrames?
+    Follow-up: How do you optimize Pandas performance for large datasets?
+
+* Section C: SQLite & Database (Questions 31 - 40)
+
+31. Question: Why was SQLite selected over PostgreSQL for this project?
+    Answer: Zero configuration, local storage, transactional safety, and simplicity.
+    Follow-up: What are the main limitations of SQLite?
+    Follow-up: How would you migrate this schema to PostgreSQL?
+
+32. Question: Explain the difference between CASCADE and RESTRICT delete actions in SQLAlchemy.
+    Answer: CASCADE propagates deletions to child records, while RESTRICT prevents deleting the parent record if references exist.
+    Follow-up: Why does the transaction table use RESTRICT for categories?
+    Follow-up: What happens if a user deletes a category that contains transactions?
+
+33. Question: How are self-referential relationships mapped on the Transfer model?
+    Answer: By declaring foreign keys referencing `accounts.id` on both `source_account_id` and `destination_account_id`.
+    Follow-up: How does SQLAlchemy resolve column joins in self-referencing relationships?
+    Follow-up: What is the purpose of the `foreign_keys` argument in relationships?
+
+34. Question: What is the role of `Base = declarative_base()` in database.py?
+    Answer: It serves as the base class for ORM models, cataloging tables and mapping database structures.
+    Follow-up: How does SQLAlchemy compile table schemas from class variables?
+    Follow-up: Explain the role of metadata in SQLAlchemy.
+
+35. Question: Why does update_transaction reverse old transaction impacts before applying new ones?
+    Answer: To prevent balance drift on the associated account by reconciling the balance against the previous amount first.
+    Follow-up: How do you implement this update atomically?
+    Follow-up: What happens if the database update fails halfway through?
+
+36. Question: What is the database index configuration in the schema?
+    Answer: Critical query columns (such as `username`, `email`, and `account_id`) are indexed to optimize SQL queries.
+    Follow-up: How do indexes improve query speed?
+    Follow-up: What is the write-performance cost of adding indexes?
+
+37. Question: How are date values stored and queries structured for monthly boundaries?
+    Answer: Dates are stored as UTC DateTime values. Queries filter records using start and end date ranges.
+    Follow-up: Why is it best practice to store dates in UTC?
+    Follow-up: How does SQLite handle DateTime types?
+
+38. Question: Explain the role of `money_manager.db` in SQLite.
+    Answer: It is the single-file database that stores all schemas and records.
+    Follow-up: How do you backup or restore a SQLite database?
+    Follow-up: What is SQLite's Write-Ahead Log (WAL) mode?
+
+39. Question: Why is an archive state used on accounts instead of deletion?
+    Answer: Soft-deleting accounts preserves historical transactions for financial KPI calculations.
+    Follow-up: How do you filter out archived accounts in queries?
+    Follow-up: What are the performance costs of soft-deletions over time?
+
+40. Question: How does SQLAlchemy handle connection sessions?
+    Answer: `SessionLocal` generates session instances. Sessions manage transaction boundaries and track object state.
+    Follow-up: What is the difference between `autocommit=False` and `autoflush=False`?
+    Follow-up: When should you call `db.refresh()`?
+
+* Section D: AI Integration & Architecture (Questions 41 - 50)
+
+41. Question: What is the purpose of the multi-agent design in the Coach router?
+    Answer: It selects specialized prompt instructions based on the user's intent to deliver relevant financial responses.
+    Follow-up: How do you prevent agents from hallucinating financial figures?
+    Follow-up: How does the router determine the user's query intent?
+
+42. Question: Explain how context is compiled in FinancialContextBuilder.
+    Answer: It retrieves account balances, monthly totals, category outlays, ML analytics, and recent transactions, formatting them into a structured JSON string.
+    Follow-up: What is the token limit of the context payload?
+    Follow-up: How does the builder trim context size?
+
+43. Question: Why are LLM outputs sanitized to raw HTML instead of Markdown?
+    Answer: To allow the React client to render formatted lists and tables directly without requiring a Markdown parser.
+    Follow-up: What are the security risks of rendering raw HTML in React?
+    Follow-up: How do you prevent Cross-Site Scripting (XSS) attacks?
+
+44. Question: How is conversation history structured for LLM queries?
+    Answer: Previous user and assistant messages are mapped to role/content JSON objects and prepended to the system prompt.
+    Follow-up: How do you prevent history from bloating the request context?
+    Follow-up: How is history persisted on the client?
+
+45. Question: Why is a local fallback template defined in llm_service.py?
+    Answer: To ensure the application remains functional and returns basic calculations even if remote LLM APIs are offline.
+    Follow-up: What data does the local fallback use?
+    Follow-up: How does the service detect LLM connection failures?
+
+46. Question: Why are emojis and markdown markdown symbols stripped from LLM responses?
+    Answer: Emojis and markdown structures are removed to maintain a professional CFO review aesthetic.
+    Follow-up: What regex patterns are used to remove emojis?
+    Follow-up: How do you convert markdown headers and bold text to HTML tags?
+
+47. Question: What parameters are used in API requests to Groq or OpenAI?
+    Answer: We configure a low temperature (0.4) for factual consistency, top_p (0.8) to control response quality, and a max token limit (1200).
+    Follow-up: How does temperature affect LLM outputs?
+    Follow-up: What is the purpose of presence and frequency penalties?
+
+48. Question: How does intent classification compare to semantic routing?
+    Answer: Keyword-based intent classification is faster and works offline, though semantic routing using embeddings can be more accurate for complex queries.
+    Follow-up: How could you implement semantic routing in this project?
+    Follow-up: What are the failure modes of keyword classification?
+
+49. Question: Explain how the affordability agent calculates opportunity cost.
+    Answer: It calculates compound interest over 1, 3, and 5 years at a 10% annual rate to estimate the return on capital if invested instead.
+    Follow-up: How is this calculation presented in the UI?
+    Follow-up: What parameters are used to assess purchase feasibility?
+
+50. Question: How would you scale the AI Advisor to handle thousands of users?
+    Answer: Implement asynchronous request queueing, caching for static query results, and self-hosted open-source models (e.g. Llama 3) to reduce API costs.
+    Follow-up: What is the bottleneck of LLM integrations at scale?
+    Follow-up: How do vector databases fit into conversational scaling?
+
+==================================================
+10. CHALLENGES & SOLUTIONS
+==================================================
+* Challenge 1: LLM Context Window Bloat and Token Limit Failures
+  - Problem: Users with extensive transaction histories generated JSON contexts that exceeded LLM token limits, causing API errors.
+  - Root Cause: Serializing all raw database records exceeded context window thresholds.
+  - Solution: Implemented a progressive truncation strategy in `FinancialContextBuilder` that trims verbose arrays (slicing transactions to 10, removing account details, dropping recurring tags) if the context string exceeds 6,000 characters.
+  - Learning: Always implement context-pruning algorithms on dynamic datasets before passing them to LLMs to prevent token limit errors.
+
+* Challenge 2: Transaction Balance Drift During Updates
+  - Problem: Modifying transaction amounts or accounts resulted in incorrect account balances.
+  - Root Cause: Directly saving updates failed to reconcile the database balances with previous transaction amounts.
+  - Solution: Wrote reconciliation logic in `transactions.py` that reverses the old transaction amount from the original account, commits, and then applies the new transaction amount to the target account.
+  - Learning: Changing records in double-entry ledgers requires reversing the old event impact before executing the new one.
+
+* Challenge 3: Orphaned Transactions on Category Deletions
+  - Problem: Deleting a category with active transactions caused foreign key constraint violations in SQLite.
+  - Root Cause: SQLite block constraints prevented deleting parent records that were referenced by active transaction records.
+  - Solution: Developed a category dependencies endpoint and updated `categories.py` to allow users to either delete related transactions or migrate them to a new category.
+  - Learning: Relational integrity checks require implementing migration options for child records before deleting parent keys.
+
+* Challenge 4: Handling LLM API Rate Limits and Outages
+  - Problem: Rate limits on external LLM services caused errors in the conversational advisor.
+  - Root Cause: Relying on a single third-party API created a single point of failure.
+  - Solution: Implemented a failover chain in `llm_service.py` that queries alternative providers (Groq -> OpenAI -> Gemini -> Anthropic) and falls back to a deterministic rule-based template if offline.
+  - Learning: High-availability AI services require robust fallback strategies to ensure application availability during API outages.
+
+==================================================
+11. RESUME PROJECT DESCRIPTION
+==================================================
+* One-Line Version:
+  A secure personal finance platform that combines transactional ledger tracking with machine learning insights and contextual AI wealth coaching.
+
+* Three-Line Version:
+  A secure, data-driven personal ledger platform built with FastAPI, React, and SQLite. Features predictive analytics models (Linear Regression, Isolation Forest) for spend forecasting and anomaly detection, alongside a multi-persona conversational AI coach that provides factual, context-grounded wealth reviews.
+
+* Resume Bullet Points:
+  - Engineered a data-driven personal finance application using React, TypeScript, and FastAPI, implementing transactional ledger tracking and budget outlays for multi-account management.
+  - Built a predictive machine learning pipeline with Scikit-Learn, implementing Linear Regression for spend forecasting, Isolation Forest for anomaly detection, and KMeans clustering for user behavior analysis.
+  - Designed a multi-agent AI assistant utilizing Groq, OpenAI, and Gemini APIs, featuring intent classification and custom prompt layouts to deliver HTML financial analysis grounded in real-time user database context.
+  - Integrated dynamic account balance reconciliation and transfer pipelines to maintain ledger consistency.
+  - Implemented client security settings, including bcrypt PIN locks, idle auto-locking, session timeouts, and balance masking variables.
+  - Programmed category split and transaction migration scripts, resolving database dependency constraints.
+
+* LinkedIn Description:
+  Finance Pro is a secure, data-driven personal ledger and wealth advisor designed to help users manage their finances. Built with React, TypeScript, FastAPI, and SQLite, the platform tracks balances and budgets while incorporating predictive data science models. Using Scikit-Learn, Finance Pro provides bill forecasting (Linear Regression), outlier alerts (Isolation Forest), and daily spending behavior grouping (KMeans). It also features a conversational AI assistant that queries multiple LLM providers (Groq, OpenAI, Gemini) to deliver financial audits and advice grounded in the user's real-time financial database.
+
+==================================================
+12. STAR METHOD STORIES
+==================================================
+* STAR Story 1: Building the AI Assistant
+  - Situation: The platform needed an interactive financial coach, but standard LLMs lacked context on the user's specific accounts and transaction histories.
+  - Task: Build an AI assistant that delivers accurate, context-grounded financial advice while preventing hallucinations.
+  - Action: Wrote `FinancialContextBuilder` to compile account balances, monthly budgets, and historical metrics into a structured JSON context. Created an intent classifier to map queries to specialized personas (e.g., CFO, Savings) and implemented a failover chain across Groq, OpenAI, and Gemini APIs.
+  - Result: Delivered an AI coach that provides factual, data-grounded wealth reviews, automatically falling back to rule-based templates during API outages.
+
+* STAR Story 2: API Integration & Balance Reconciliation
+  - Situation: Modifying transaction amounts or accounts in the ledger resulted in incorrect account balances.
+  - Task: Implement a secure update API that maintains balance consistency across related accounts.
+  - Action: Wrote reconciliation logic in the `PUT /api/transactions/{id}` route to reverse the old transaction amount from the original account before applying the updated transaction details.
+  - Result: Resolved balance drift issues, ensuring ledger accuracy when editing transaction records.
+
+* STAR Story 3: Relational Database Schema Design
+  - Situation: Deleting categories containing transaction histories caused foreign key constraint violations in SQLite.
+  - Task: Design a category deletion and migration pipeline that protects database integrity.
+  - Action: Implemented a category dependencies endpoint and updated `categories.py` to allow users to either delete related transactions or migrate them to a new category.
+  - Result: Prevented orphaned database records, resolving database constraint failures during category deletions.
+
+* STAR Story 4: Frontend Development & UI Animation
+  - Situation: The dashboard layout felt static and required full-page reloads to display updated data.
+  - Task: Build a modern, responsive single-page dashboard with interactive charts and transitions.
+  - Action: Used Tailwind CSS for dark-mode styling, Recharts for category distribution diagrams, and Framer Motion for slide-in widgets. Integrated TanStack React Query for async state management.
+  - Result: Created a responsive SPA dashboard that updates metrics in real-time when transactions are modified.
+
+* STAR Story 5: Debugging Context Window Failures
+  - Situation: Large transaction histories caused LLM context queries to exceed token limits, leading to API failures.
+  - Task: Reduce context payload sizes to fit within API token thresholds.
+  - Action: Added a progressive truncation algorithm to `FinancialContextBuilder` that slices transaction arrays and removes non-essential details if the context string exceeds 6,000 characters.
+  - Result: Eliminated context window overflows, ensuring advisor functionality for users with extensive ledger histories.
+
+* STAR Story 6: Security Lock Implementation
+  - Situation: Financial dashboards contained sensitive balance details that required protection from unauthorized local access.
+  - Task: Implement a security PIN lock screen for user accounts.
+  - Action: Created a settings model in the database to store bcrypt PIN hashes. Developed `PinLock.tsx` to display a keypad overlay that restricts access if PIN lock is enabled.
+  - Result: Secured dashboard access, protecting financial details from local screen-sharing views.
+
+==================================================
+13. PROJECT DEFENSE PREPARATION
+==================================================
+* 5-Minute Defense Answer:
+  "Finance Pro is a secure, data-driven personal ledger and wealth advisor. I built it using React, TypeScript, and Vite on the frontend, with a FastAPI and SQLite backend. The project solves two main problems: maintaining a consistent financial ledger and turning that transactional data into actionable insights.
+
+  To do this, the system incorporates statistical and machine learning calculations. When a user navigates to the analytics dashboard, the backend uses Pandas to calculate monthly cash flows and metrics like the Coefficient of Variation for income stability. It also runs Scikit-Learn models on the database transaction history: Linear Regression to forecast future expenses, Isolation Forest to flag outlier transactions, and KMeans to cluster daily spending aggregates.
+
+  Additionally, the application features an AI Coach widget. Unlike generic chatbots, this assistant is grounded in the user's real-time financial database. The backend builds a structured JSON context summarizing the user's finances and classifies query intent to select a specialized prompt agent (such as CFO or Savings). It calls the best available LLM provider (Groq, OpenAI, Gemini) and sanitizes the output to display HTML-formatted advice in the UI.
+
+  Finally, the system is secured with a local PIN lock that hashes codes using bcrypt, dynamic balance masking, and auto-locking features. This ensures that the application is secure, responsive, and data-grounded."
+
+* 10-Minute Defense Answer:
+  "I designed Finance Pro to address the limitations of traditional personal finance trackers, which are often static and lack predictive analytics or contextual guidance. The system is split into a React SPA frontend and a FastAPI backend with a SQLite database.
+
+  On the backend, I used SQLAlchemy ORM to define schemas for users, settings, accounts, categories, transactions, transfers, tickets, notifications, and snapshots. To maintain ledger consistency, I wrote reconciliation logic that dynamically recalculates account balances when transactions are created, modified, or deleted. For example, if a transaction is updated, the backend reverses its previous balance impact before applying the new values to prevent balance drifts.
+
+  For the analytics engine, I integrated Scikit-Learn models. When a user requests analytics, the backend processes transaction history into a Pandas DataFrame. It calculates basic metrics like mean spend and income stability, and runs three models: Linear Regression over monthly totals to project upcoming bills, Isolation Forest to flag spending anomalies, and KMeans to cluster daily aggregates into behavioral categories (Frugal, Moderate, Splurge).
+
+  The AI Coach widget uses a multi-agent system. When a query is received, the backend builds a JSON summary of the user's finances. To protect LLM token limits, I implemented a progressive context trimmer that reduces payload size if it exceeds 6,000 characters. The query is then routed to a specialized prompt agent based on its classified intent. The LLM Service queries available APIs (Groq, OpenAI, Gemini) and falls back to a rule-based template if offline. The response is sanitized to strip emojis and markdown wrappers, returning raw HTML for rendering in the React client.
+
+  The frontend is built on Vite, TypeScript, and Tailwind CSS. It uses Zustand to manage user sessions and UI states (such as theme customizer variables and balance visibility). It also utilizes TanStack React Query to cache server data and manage automatic refreshes on ledger mutations. Finally, the application is secured with a PIN lock screen that hashes input codes using bcrypt and overlays a lock screen based on configured timeout durations. This project demonstrates clean architecture, database integrity, machine learning, and secure session management."
+
+==================================================
+14. LEARNING ROADMAP
+==================================================
+* Concepts Already Mastered:
+  - Single-page application development with React, Vite, and TypeScript.
+  - Lightweight state management with Zustand.
+  - Client-server state synchronization using TanStack React Query.
+  - Relational database schema design with SQLAlchemy ORM and SQLite.
+  - Password and PIN encryption using bcrypt hashing.
+  - Asynchronous web APIs using FastAPI and Pydantic schemas.
+  - Context-grounded LLM prompts with failover chains.
+  - Data manipulation using Pandas DataFrames and NumPy.
+  - Basic Scikit-Learn integrations (LinearRegression, IsolationForest, KMeans).
+
+* Intermediate Topics to Strengthen:
+  - Complex SQL migrations and database schema updates.
+  - Custom token refresh cycles and OAuth2 flows.
+  - Tuning contamination parameters in Isolation Forest models.
+  - Handling asynchronous request queueing for slow API operations.
+  - Component optimizations to minimize virtual DOM re-renders.
+
+* Advanced Topics to Learn Next:
+  - Deploying open-source LLMs (e.g. Llama 3) locally to eliminate third-party API costs.
+  - Setting up PostgreSQL database replication and query optimization.
+  - Implementing semantic query routing using vector database embeddings.
+  - Writing automated integration tests for AI-generated HTML responses.
+  - Implementing multi-user containerized environments on cloud platforms.
+
+==================================================
+15. PROJECT SUMMARY SHEET
+==================================================
+*** Finance Pro Summary Sheet ***
+
+* Core Tech Stack:
+  - Frontend: React v19, TypeScript, Zustand, React Query, Tailwind CSS, Recharts, Framer Motion.
+  - Backend: FastAPI, Python, SQLAlchemy, SQLite, Pandas, NumPy, Scikit-Learn.
+  - AI Integrations: Groq, OpenAI, Google Gemini, Anthropic.
+
+* Core Features:
+  - Multi-Account Ledger: Track balances across cards and wallets.
+  - Balance Reconciliation: Reverses previous transaction impacts on edit/delete.
+  - Split Categories: Restructure categories and migrate transactions.
+  - PIN Security: Bcrypt-hashed PIN lock screens and balance masking.
+  - Analytics Engine: Spend forecasting, anomaly detection, and KMeans behavior clustering.
+  - AI Coach: Conversational advisor utilizing real-time database context.
+
+* Key Endpoints:
+  - `POST /api/auth/login`: Issues JWT tokens.
+  - `POST /api/transactions`: Logs transaction, reconciles balances.
+  - `POST /api/categories/{id}/split`: Splits categories, migrates data.
+  - `GET /api/analytics/ml`: Returns models forecasts and anomalies.
+  - `POST /api/coach/chat`: Processes grounded conversational queries.
+
+* Critical Design Decisions:
+  - Context Trimming: Reduces payload sizes below 6,000 characters to prevent token errors.
+  - Multi-Model Failover: Queries Groq -> OpenAI -> Gemini -> Anthropic -> local fallback templates.
+  - Relational Integrity: Uses CASCADE delete on users, and RESTRICT on categories to protect transaction data.
+  - Soft Delete: Archives accounts (`is_archived = True`) to preserve transaction histories.
+  - Raw HTML Responses: AI replies in raw HTML to bypass markdown rendering overhead.

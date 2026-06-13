@@ -180,7 +180,12 @@ def login_oauth(
     # Standard Swagger OAuth2 Password Flow — accepts application/x-www-form-urlencoded
     username = form_data.username
     password = form_data.password
+    print("OAUTH USERNAME:", repr(username))
+    print("OAUTH PASSWORD LENGTH:", len(password) if password else 0)
     user = db.query(User).filter(User.username == username).first()
+    print("USER FOUND:", user is not None)
+    if user:
+        print("DB USERNAME:", user.username)
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect credentials")
     token = create_access_token(data={"sub": user.username, "id": user.id, "email": user.email})
